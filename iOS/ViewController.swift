@@ -10,14 +10,44 @@ import UIKit
 
 class ViewController: UIViewController, SpeakerDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     
-    @IBOutlet var textview: UITextView!
+    @IBOutlet weak var textView: UITextView! = nil
+    @IBOutlet weak var playButton: UIBarButtonItem! = nil
+    @IBOutlet weak var rateLabel: UILabel! = nil
+
     let speaker = Speaker.defaultSpeaker
-    var languageNames = [String]()
+    var languageNames: [String] = []
+    var isSpeaking = false
+    var isPaused = false
     
     @IBAction func playClicked(_ sender: AnyObject) {
-        if let text = self.textview.text {
-            self.speaker.speakText(text: text)
+        if isSpeaking {
+            if isPaused {
+                speaker.continueSpeaking()
+                isPaused = false
+                playButton.image = UIImage(named: "Pause.png")
+            } else {
+                speaker.pauseSpeaking()
+                isPaused = true
+                playButton.image = UIImage(named: "Play.png")
+            }
+        } else if let text = self.textView.text {
+            speaker.speakText(text: text)
+            isSpeaking = true
+            playButton.image = UIImage(named: "Pause.png")
         }
+    }
+    
+    @IBAction func stopClicked(_ sender: AnyObject) {
+        speaker.stopSpeaking()
+        isPaused = false
+        isSpeaking = false
+        playButton.image = UIImage(named: "Play.png")
+    }
+    
+    func speaker(speaker: Speaker, didFinishSpeechString: String) {
+        isSpeaking = false
+        isPaused = false
+        playButton.image = UIImage(named: "Play.png")
     }
     
     @IBAction func changeVoiceClicked(_ sender: AnyObject) {
@@ -40,12 +70,16 @@ class ViewController: UIViewController, SpeakerDelegate, UIPickerViewDelegate, U
         present(alertController, animated: true, completion: nil)
     }
     
-    func speaker(speaker: Speaker, didFinishSpeechString: String) {
-        print("didFinishSpeechString : ", didFinishSpeechString)
+    @IBAction func rateChanged(_ sender: UISlider) {
+        let value = roundf(100 * sender.value) / 100
+        speaker.rate = value
+        rateLabel.text = String(value)
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        speaker.delegate = self
+        
         //init language names
         let voices = self.speaker.voices
         for voice in voices {
